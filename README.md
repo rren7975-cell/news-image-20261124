@@ -15,7 +15,7 @@ python3 render.py   # redraws entry.png from the story list (PIL only)
 python3 main.py     # validates the PNG and copies it to /output/entry.png
 ```
 
-Python 3.13, standard library only for main.py — validates entry.png (PNG signature, 1024×1024 IHDR, IEND tail, ≤1 MiB), copies it to /output/entry.png, then re-validates the copy and checks its SHA-256 matches. No network, deterministic (same bytes every run).
+Python 3.13, standard library only for main.py — it walks every PNG chunk and checks each chunk's CRC (so a flipped byte anywhere is caught, not just a cut-off tail), verifies the 1024×1024 IHDR and the IEND tail and the ≤1 MiB limit, copies entry.png to /output/entry.png, then re-inspects the copy and checks its SHA-256 matches. No network, deterministic (same bytes every run).
 
 ## The image
 
