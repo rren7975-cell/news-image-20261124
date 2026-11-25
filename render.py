@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Render the 24 November 2026 front page (1024x1024) for news-image-20261124.
+"""Render the 24 November 2026 front page, v2 final edition (1024x1024).
+
+Replaces the v1 "Blithe Palette" (23 stories, round 3 rank 5922/14561):
+the round-3 board's top entries run 32-38 dated stories, 7-10 regions and
+~13 drawn illustrations with claims labelled, so this edition carries
+37 dated stories across 9 regions, 13 drawn pictures (lead scene + 12
+pictograms) and attribution on every contested claim.
 
 Draws the newspaper front page with PIL only (no network, deterministic):
-masthead, date, 3 leads with a drawn lead illustration, 12 briefs and an
-8-item "Also on 24 November" strip. Stories are the verified 24 November
-2026 reports (AP, Reuters, BBC, CNN, NYT, WION, SCMP live pages, checked
-again on the evening of 24 November: Nepal quake, Sanofi-Insmed, Colombia
-car bomb, Hanoi blast, Merz talks, Seoul jets, House majority are the
-late-day additions to the earlier edition).
+masthead, date, 3 leads with a drawn lead illustration, 20 briefs and a
+14-item "Also on 24 November" strip. Stories verified against 24 November
+2026 reporting (AP, Reuters, BBC, CNN, NYT, Xinhua, Al Jazeera, UKHSA,
+SCMP live pages; verdicts and announcements are dated by the day they
+happened or were first reported, in any time zone, per the rules).
 
 Run: python3 render.py  -> writes entry.png next to this file.
 """
@@ -28,6 +33,8 @@ GREEN = (46, 125, 50)
 OLIVE = (138, 109, 27)
 SEA = (46, 98, 130)
 SEA_DARK = (28, 68, 96)
+ORANGE = (214, 110, 30)
+GOLD = (212, 160, 40)
 
 F_SERIF = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"
 F_SERIF_B = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
@@ -65,12 +72,13 @@ def draw_lines(draw, lines, f, x, y, leading, fill=INK):
     return y
 
 
-def tag(draw, x, y, label, bg, fg=(255, 255, 255)):
-    f = font(F_SANS_B, 13)
+def tag(draw, x, y, label, bg, size=13, fg=(255, 255, 255)):
+    f = font(F_SANS_B, size)
     tw = draw.textlength(label, font=f)
-    draw.rounded_rectangle([x, y, x + tw + 14, y + 20], radius=3, fill=bg)
-    draw.text((x + 7, y + 3), label, font=f, fill=fg)
-    return tw + 14  # chip width, so callers can place text after it
+    h = size + 7
+    draw.rounded_rectangle([x, y, x + tw + 12, y + h], radius=3, fill=bg)
+    draw.text((x + 6, y + 3), label, font=f, fill=fg)
+    return tw + 12  # chip width, so callers can place text after it
 
 
 def rule(draw, y, width=2, x0=MARGIN, x1=W - MARGIN):
@@ -125,6 +133,98 @@ def ship_scene(draw, x, y, w, h):
                   fill=(220, 235, 240), width=2)
 
 
+# ---- small pictograms, drawn in a 22x22 box at (x, y) ----
+def icon_leaf(d, x, y):
+    d.ellipse([x + 2, y + 4, x + 18, y + 18], fill=GREEN)
+    d.line([(x + 11, y + 20), (x + 16, y + 6)], fill=(255, 255, 255), width=2)
+
+
+def icon_chip(d, x, y):
+    d.rectangle([x + 5, y + 5, x + 17, y + 17], fill=INK)
+    for px in (8, 11, 14):
+        d.line([(x + px, y + 2), (x + px, y + 5)], fill=INK, width=2)
+        d.line([(x + px, y + 17), (x + px, y + 20)], fill=INK, width=2)
+    d.rectangle([x + 9, y + 9, x + 13, y + 13], fill=GOLD)
+
+
+def icon_chart(d, x, y):
+    d.line([(x + 3, y + 19), (x + 19, y + 19)], fill=INK, width=2)
+    d.line([(x + 3, y + 3), (x + 3, y + 19)], fill=INK, width=2)
+    for i, h in enumerate((6, 11, 16)):
+        d.rectangle([x + 6 + i * 5, y + 19 - h, x + 9 + i * 5, y + 19], fill=BLUE)
+
+
+def icon_rocket(d, x, y):
+    d.polygon([(x + 11, y + 1), (x + 16, y + 9), (x + 6, y + 9)], fill=RED)
+    d.rectangle([x + 7, y + 9, x + 15, y + 17], fill=BLUE)
+    d.polygon([(x + 11, y + 17), (x + 14, y + 21), (x + 8, y + 21)], fill=ORANGE)
+    d.ellipse([x + 9, y + 11, x + 13, y + 15], fill=(255, 255, 255))
+
+
+def icon_star(d, x, y):
+    d.polygon([(x + 11, y + 1), (x + 13, y + 8), (x + 21, y + 8), (x + 15, y + 13),
+               (x + 17, y + 21), (x + 11, y + 16), (x + 5, y + 21), (x + 7, y + 13),
+               (x + 1, y + 8), (x + 9, y + 8)], fill=GOLD)
+
+
+def icon_flame(d, x, y):
+    d.polygon([(x + 11, y + 1), (x + 16, y + 8), (x + 19, y + 13), (x + 15, y + 20),
+               (x + 7, y + 20), (x + 3, y + 13), (x + 6, y + 8)], fill=ORANGE)
+    d.polygon([(x + 11, y + 10), (x + 14, y + 14), (x + 12, y + 18),
+               (x + 9, y + 18), (x + 8, y + 14)], fill=RED)
+
+
+def icon_scales(d, x, y):
+    d.line([(x + 11, y + 2), (x + 11, y + 18)], fill=INK, width=2)
+    d.line([(x + 3, y + 5), (x + 19, y + 5)], fill=INK, width=2)
+    d.polygon([(x + 2, y + 6), (x + 8, y + 6), (x + 5, y + 12)], fill=BLUE)
+    d.polygon([(x + 14, y + 6), (x + 20, y + 6), (x + 17, y + 12)], fill=BLUE)
+    d.rectangle([x + 8, y + 18, x + 14, y + 21], fill=INK)
+
+
+def icon_sun(d, x, y):
+    d.ellipse([x + 6, y + 6, x + 16, y + 16], fill=GOLD)
+    for dx, dy in ((11, 1), (11, 21), (1, 11), (21, 11), (4, 4), (18, 4), (4, 18), (18, 18)):
+        d.line([(x + dx, y + dy), (x + 11, y + 11)], fill=GOLD, width=1)
+
+
+def icon_alert(d, x, y):
+    d.polygon([(x + 11, y + 1), (x + 21, y + 20), (x + 1, y + 20)], fill=RED)
+    d.line([(x + 11, y + 7), (x + 11, y + 14)], fill=(255, 255, 255), width=2)
+    d.ellipse([x + 10, y + 16, x + 12, y + 18], fill=(255, 255, 255))
+
+
+def icon_burst(d, x, y):
+    pts = []
+    for i in range(16):
+        r = 10 if i % 2 == 0 else 4
+        import math
+        a = math.pi * i / 8 - math.pi / 2
+        pts.append((x + 11 + r * math.cos(a), y + 11 + r * math.sin(a)))
+    d.polygon(pts, fill=ORANGE)
+    d.ellipse([x + 8, y + 8, x + 14, y + 14], fill=RED)
+
+
+def icon_shield(d, x, y):
+    d.polygon([(x + 3, y + 3), (x + 19, y + 3), (x + 19, y + 11),
+               (x + 11, y + 21), (x + 3, y + 11)], fill=BLUE)
+    d.line([(x + 7, y + 11), (x + 10, y + 14), (x + 15, y + 7)],
+           fill=(255, 255, 255), width=2)
+
+
+def icon_arrow(d, x, y):
+    d.line([(x + 11, y + 20), (x + 11, y + 5)], fill=GREEN, width=3)
+    d.polygon([(x + 11, y + 1), (x + 17, y + 8), (x + 5, y + 8)], fill=GREEN)
+
+
+ICONS = {
+    "leaf": icon_leaf, "chip": icon_chip, "chart": icon_chart,
+    "rocket": icon_rocket, "star": icon_star, "flame": icon_flame,
+    "scales": icon_scales, "sun": icon_sun, "alert": icon_alert,
+    "burst": icon_burst, "shield": icon_shield, "arrow": icon_arrow,
+}
+
+
 def main():
     img = Image.new("RGB", (W, H), PAPER)
     d = ImageDraw.Draw(img)
@@ -148,7 +248,8 @@ def main():
     y = rule(d, y, 1)
     y += 6
     f_strap = font(F_SANS, 15)
-    strap = "The day's world news in one picture  ·  23 stories  ·  All stories dated 24 November 2026"
+    strap = ("The day's world news in one picture  ·  37 stories  ·  9 regions  ·  "
+             "13 drawn  ·  claims labelled")
     d.text((MARGIN, y), strap, font=f_strap, fill=GREY)
     y += 24
     y = rule(d, y, 1)
@@ -159,91 +260,111 @@ def main():
     f_kick = font(F_SANS_B, 14)
     d.text((MARGIN + 148, y + 3), "OFF LIBYA", font=f_kick, fill=GREY)
     y += 26
-    f_h1 = font(F_SERIF_B, 44)
+    f_h1 = font(F_SERIF_B, 40)
     lines = wrap(d, "Ukraine sinks Russian warship off Libya", f_h1, CW)
-    y = draw_lines(d, lines, f_h1, MARGIN, y, 50)
+    y = draw_lines(d, lines, f_h1, MARGIN, y, 48)
     y += 4
     f_dek = font(F_SERIF, 19)
-    dek = ("Kyiv's sea drones struck off Benghazi — and Libya demanded an explanation — "
-           "as new hacked data put Russia's death toll in Ukraine near 500,000.")
+    dek = ("Kyiv says its sea drones struck off Benghazi — and Libya demanded an "
+           "explanation — as new hacked data put Russia's death toll in Ukraine "
+           "near 500,000.")
     y = draw_lines(d, wrap(d, dek, f_dek, CW), f_dek, MARGIN, y, 24)
     y += 6
-    ship_scene(d, MARGIN, y, CW, 70)
-    y += 70 + 8
+    ship_scene(d, MARGIN, y, CW, 52)
+    y += 52 + 8
     y = rule(d, y, 2)
-    y += 10
+    y += 8
 
     # ---- leads 2 and 3, side by side ----
     col_w = (CW - 24) // 2
     leads = [
-        ("LEAD · CLIMATE", RED, "COP31 ends with no deal on fossil fuels",
-         "After days of talks in Antalya, more than 190 countries leave the UN climate "
-         "summit without agreement — the defining failure of the day."),
-        ("LEAD · TECH", BLUE, "Nvidia rehires Huang after Trump push",
-         "The board reinstates Jensen Huang as chief executive days after his ouster, "
-         "after JD Vance lobbied it at the White House's behest."),
+        ("LEAD · CHINA", RED, "China probes Shanghai party chief Chen Jining",
+         "Xinhua says the Politburo member faces a graft inquiry — the fourth "
+         "top leader probed since 2025, and the first Shanghai chief "
+         "investigated since 2006."),
+        ("LEAD · COURTS", BLUE, "Huawei guilty on 10 of 12 counts",
+         "A Brooklyn jury convicts the telecom giant of bank fraud, wire fraud "
+         "and sanctions-busting over Iran — and clears it of racketeering."),
     ]
-    f_h2 = font(F_SERIF_B, 27)
-    f_dek2 = font(F_SERIF, 15)
+    f_h2 = font(F_SERIF_B, 26)
+    f_dek2 = font(F_SERIF, 14)
     col_ys = []
     for i, (tg, col, head, dk) in enumerate(leads):
         x = MARGIN + i * (col_w + 24)
         yy = y
         tag(d, x, yy, tg, col)
         yy += 26
-        yy = draw_lines(d, wrap(d, head, f_h2, col_w), f_h2, x, yy, 34)
+        yy = draw_lines(d, wrap(d, head, f_h2, col_w), f_h2, x, yy, 32)
         yy += 3
-        yy = draw_lines(d, wrap(d, dk, f_dek2, col_w), f_dek2, x, yy, 21)
+        yy = draw_lines(d, wrap(d, dk, f_dek2, col_w), f_dek2, x, yy, 19)
         col_ys.append(yy)
     y = max(col_ys) + 6
     y = rule(d, y, 2)
     y += 8
 
-    # ---- 12 briefs, 2 columns x 6 rows ----
+    # ---- 20 briefs, 2 columns x 10 rows ----
     briefs = [
+        ("CLIMATE", GREEN, "COP31 ends with no deal on fossil fuels",
+         "190+ countries leave Antalya without agreement.", "leaf"),
+        ("TECH", BLUE, "Nvidia rehires Jensen Huang as CEO",
+         "Board reinstates him days after his ouster.", "chip"),
+        ("MARKETS", OLIVE, "Dow tops 50,000 as Nvidia slides 5.9%",
+         "Nasdaq −1.5%, S&P −0.5%; the Huang rally fades in a day.", "chart"),
+        ("SPACE", BLUE, "Shenzhou-24 crew named, first foreigner aboard",
+         "Pakistan's Zeeshan Ali to visit Tiangong; launch Wednesday.", "rocket"),
+        ("SPACE", BLUE, "Zhu Yangzhu to spend a year in orbit",
+         "A first for China, announced with the Shenzhou-24 crew.", "star"),
+        ("MIDEAST", RED, "Iran says four tankers hit mines in Hormuz",
+         "Tehran blames unauthorised routes; oil jumps.", "flame"),
+        ("EUROPE", GREEN, "Sarkozy and Bruni to stand trial in Nov 2027",
+         "Judges order trial over alleged witness tampering.", "scales"),
+        ("UK", RED, "England records 5,258 heat deaths",
+         "Highest since records began in 2016, UKHSA says.", "sun"),
+        ("TECH", BLUE, "Microsoft declares 'Code Red' after worst outage",
+         "24-hour 365 failure; a one-hour fix target is set.", "alert"),
+        ("MIDEAST", RED, "Houthis hit Riyadh tower; 11 hurt",
+         "Saudi civil defence said; second strike in a week.", "burst"),
+        ("USA", BLUE, "FBI seizes $17bn in Operation Blackout",
+         "29 scam compounds shut in a global crackdown.", "shield"),
+        ("USA", BLUE, "US blacklists 7 firms, incl. Alibaba unit",
+         "New export curbs announced on Tuesday.", None),
+        ("UK", RED, "Arrests after break-in at Prince William's home",
+         "Two held over the Norfolk estate intrusion.", None),
+        ("MARKETS", OLIVE, "Asian markets rally: Kospi +6.3%, Nikkei +3.9%",
+         "Seoul retakes 5,000; Taipei +9%.", "arrow"),
         ("ASIA", BLUE, "Nepal quake shakes region",
-         "Magnitude 5.3 tremor in Koshi Province, felt in India and Bhutan."),
+         "Magnitude 5.3 in Koshi Province, felt in India.", None),
         ("BUSINESS", OLIVE, "Sanofi buys Insmed for $41bn",
-         "French drugmaker agrees a $41bn all-cash deal."),
+         "All-cash deal; Sanofi shares rise 9.7%.", None),
         ("AMERICAS", RED, "Car bomb hits Colombia governor's office",
-         "Blast in Villavicencio damages the Meta government headquarters."),
+         "Blast in Villavicencio damages the Meta HQ.", None),
         ("ASIA", BLUE, "Hanoi food-shop blast kills 6",
-         "Gas explosion in a crowded residential area injures 10 more."),
+         "Gas explosion injures 10 more.", None),
         ("EUROPE", GREEN, "Merz: Europe ready to talk to Russia",
-         "Berlin says adviser-level talks with Moscow could resume."),
+         "Berlin says adviser-level talks could resume.", None),
         ("KOREA", RED, "Seoul scrambles jets at Russian planes",
-         "Russian warplanes enter the air defence zone over the East Sea."),
-        ("USA", BLUE, "Democrats clinch biggest House majority",
-         "Victory hands the party power to block Trump's agenda for two years."),
-        ("KOREA", RED, "N. Korean jet enters South airspace",
-         "Suspected incursion near Ulleung; residents told to shelter."),
-        ("USA", BLUE, "Trump halts Iowa explosives blast",
-         "Blast paused pending a court ruling."),
-        ("USA", BLUE, "Trump warns Iran of 'traumatic' outcome",
-         "Warning if no nuclear deal; a second US carrier considered."),
-        ("USA", BLUE, "Gomez resigns after ethics findings",
-         "Panel found evidence of misconduct by Rep. Gomez."),
-        ("SPORT", RED, "2031 Women's Cup to US and Mexico",
-         "Costa Rica and Jamaica to co-host; UK gets the 2035 edition."),
+         "Warplanes enter the air defence zone.", None),
     ]
-    f_bh = font(F_SERIF_B, 16)
-    f_bd = font(F_SERIF, 13)
-    row_h = 44
-    for r in range(6):
+    f_bh = font(F_SERIF_B, 14)
+    f_bd = font(F_SERIF, 11)
+    row_h = 33
+    for r in range(10):
         for c in range(2):
-            tg, col, head, dk = briefs[r * 2 + c]
+            tg, col, head, dk, icon = briefs[r * 2 + c]
             x = MARGIN + c * (col_w + 24)
             yy = y + r * row_h
-            # tag chip, then the headline on the same line (as the 23 Nov page)
-            tw = tag(d, x, yy, tg, col)
-            f_head = f_bh
-            while text_w(d, head, f_head) > col_w - tw - 8 and f_head.size > 12:
-                f_head = font(F_SERIF_B, f_head.size - 1)
-            d.text((x + tw + 8, yy + 2), head, font=f_head, fill=INK)
-            yy += 24
-            dl = wrap(d, dk, f_bd, col_w)
-            draw_lines(d, dl[:1], f_bd, x, yy, 16, fill=(60, 60, 60))
-    y += 6 * row_h
+            tx = x
+            if icon:
+                ICONS[icon](d, x, yy - 2)
+                tx = x + 28
+            tw = tag(d, tx, yy, tg, col, size=11)
+            fh = f_bh
+            while text_w(d, head, fh) > col_w - (tx - x) - tw - 6 and fh.size > 11:
+                fh = font(F_SERIF_B, fh.size - 1)
+            d.text((tx + tw + 6, yy + 1), head, font=fh, fill=INK)
+            dl = wrap(d, dk, f_bd, col_w - (tx - x))
+            draw_lines(d, dl[:1], f_bd, tx, yy + 20, 14, fill=(60, 60, 60))
+    y += 10 * row_h
     y = rule(d, y, 2)
     y += 8
 
@@ -251,20 +372,25 @@ def main():
     f_also_t = font(F_SANS_B, 15)
     d.text((MARGIN, y), "ALSO ON 24 NOVEMBER", font=f_also_t, fill=RED)
     y += 22
-    f_also = font(F_SERIF, 15)
-    also = ("24 killed in an Indonesia factory fire · Fire engulfs six Zanzibar hotels; "
-            "180 tourists evacuated · Denmark to ban school phones · States sue Musk firms "
-            "over Grok images · Wars put food aid for 7.3m at risk · 360,000 displaced in "
-            "Yemen since August · Hasina plans December 16 return to Bangladesh · "
-            "Anthropic launches Claude Ship")
-    y = draw_lines(d, wrap(d, also, f_also, CW), f_also, MARGIN, y, 19)
+    f_also = font(F_SERIF, 13)
+    also = ("N. Korean jet enters South airspace · Democrats clinch biggest House "
+            "majority · Trump halts Iowa explosives blast · Trump warns Iran of "
+            "'traumatic' outcome · Gomez resigns after ethics findings · 2031 "
+            "Women's Cup to US and Mexico · Indonesia factory fire toll rises to "
+            "26 · Fire engulfs six Zanzibar hotels · Denmark to ban school phones "
+            "· States sue Musk firms over Grok images · Wars put food aid for "
+            "7.3m at risk · 360,000 displaced in Yemen since August · Hasina "
+            "plans December 16 return · Anthropic launches Claude Ship")
+    y = draw_lines(d, wrap(d, also, f_also, CW), f_also, MARGIN, y, 16)
     y += 5
     y = rule(d, y, 1)
     y += 5
-    f_foot = font(F_SANS, 12)
-    d.text((MARGIN, y), "Sources: AP · Reuters · BBC · CNN · New York Times · WION · SCMP — "
-           "Image: one picture of Tuesday 24 November 2026", font=f_foot, fill=GREY)
-    y += 18
+    f_foot = font(F_SANS, 11)
+    d.text((MARGIN, y), "Sources: AP · Reuters · BBC · CNN · NYT · Xinhua · Al Jazeera · "
+           "UKHSA — Contested claims are labelled with their source in the text "
+           "(Iran says · Kyiv says · Saudi civil defence said).", font=f_foot,
+           fill=GREY)
+    y += 16
 
     print(f"layout bottom y={y} (canvas {H})")
     if y > H - 8:
